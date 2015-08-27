@@ -2,7 +2,6 @@ SerialPort = require('serialport').SerialPort
 serialPort = new SerialPort('/dev/cu.usbmodem1411', { baudrate: 115200 }, false)
 # this is the openImmediately flag [default is true]
 address = 0
-value = 18
 DATA_WRITE = 0x66
 DATA_READ = 0x55
 DATA_SUCCESS = 0x77

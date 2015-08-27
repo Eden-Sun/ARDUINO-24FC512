@@ -77,9 +77,9 @@ void WireEepromWrite(int theDeviceAddress, unsigned int theMemoryAddress, int th
 void WireEepromWriteEx(int theDeviceAddress, unsigned int theMemoryAddress, unsigned char theByteCount, byte* theByteArray) {
    Wire.beginTransmission(theDeviceAddress); 
    for (int theByteIndex = 0; theByteIndex < theByteCount; theByteIndex++) {
-      Wire.write(theByteArray[theByteIndex]);
       Wire.write((byte)((theMemoryAddress + theByteIndex) >> 8));
       Wire.write((byte)((theMemoryAddress + theByteIndex) >> 0));
+      Wire.write(theByteArray[theByteIndex]);
    }
    Wire.endTransmission();
    delay(5);
