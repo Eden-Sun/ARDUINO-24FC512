@@ -1,10 +1,14 @@
 #include <Wire.h>
+#define READ 0x55
+#define WRITE 0x66
+#define SUCCESS 0x77
+#define FAIL 0x88
 
 char mode = 0;
 const int theDeviceAddress = 80;
 //unsigned int length = 1535;
 //byte data[] = {0x34,0xff,0x88};
-byte buffer[20];
+byte buffer[200];
 
 void setup(void) {
   Serial.begin(115200);
@@ -12,7 +16,28 @@ void setup(void) {
 }
 
 void loop(void) {
-    byte number = Serial.readBytes(buffer, 4);
+    byte number = Serial.readBytes(buffer, 105);
+    unsigned char mode = buffer[0];
+    unsigned int address = (((unsigned int)buffer[1])<<8) + (unsigned int)buffer[2];
+    unsigned char length = buffer[3];
+    byte check = 0;
+    for(unsigned char i = 0;i<104;i++){
+        check+=buffer[i];
+    }
+    if(mode==WRITE){
+        if (check!=buffer[104]) // fail 
+        {
+            Serial.write(FAIL);
+            return;
+        }else {
+            WireEepromWriteEx(theDeviceAddress,address,length,buffer);
+            Serial.write(SUCCESS);
+            return;
+        }
+         
+        
+    }
+    return;
     if(number==4){
       if(buffer[0]==0x55){  // write
           unsigned int address = ((unsigned int)buffer[1])*256;
@@ -30,38 +55,7 @@ void loop(void) {
        
     }
 }
-//        Serial.print("START ");
-//        for (unsigned int theMemoryAddress = 0; theMemoryAddress < length; theMemoryAddress++) {
-//              WireEepromWriteByte(theDeviceAddress, theMemoryAddress, *eeprom+theMemoryAddress);
-//              Serial.print(theMemoryAddress);
-//              Serial.print(" is");
-//              Serial.print((byte)(*ptr));
-//              Serial.println(" done");
-//        }
-//     else 
-//     {
-//        for (unsigned int theMemoryAddress = 0; theMemoryAddress < length; theMemoryAddress++) {
-//              Serial.print("Byte: ");
-//              Serial.print(theMemoryAddress);
-//              Serial.print(", ");
-//              Serial.print((int)WireEepromReadByte(theDeviceAddress, theMemoryAddress));
-//              Serial.println(".");
-//        }
-//        mode++;
-//        Serial.println("done");
-//     }
 
-//    for (unsigned int theMemoryAddress = 0; theMemoryAddress < 1024; theMemoryAddress++) {
-//        WireEepromWriteInt(theDeviceAddress, theMemoryAddress * 2, (int)0xffff);
-//    }
-//    for (unsigned int theMemoryAddress = 0; theMemoryAddress < 1024; theMemoryAddress++) {
-//        Serial.print("Int: ");
-//        Serial.print(theMemoryAddress);
-//        Serial.print(", ");
-//        Serial.print(WireEepromReadInt(theDeviceAddress, theMemoryAddress * 2));
-//        Serial.println(".");
-//    }
-//}
 
 void WireEepromRead(int theDeviceAddress, unsigned int theMemoryAddress, int theByteCount, byte* theByteArray) {
   for (int theByteIndex = 0; theByteIndex < theByteCount; theByteIndex++) {
@@ -98,16 +92,16 @@ void WireEepromWrite(int theDeviceAddress, unsigned int theMemoryAddress, int th
   }
 }
 
-//void WireEepromWriteEx(int theDeviceAddress, unsigned int theMemoryAddress, int theByteCount, byte* theByteArray) {
-//   Wire.beginTransmission(theDeviceAddress);
-//   Wire.write((byte)((theMemoryAddress + theByteIndex) >> 8));
-//   Wire.write((byte)((theMemoryAddress + theByteIndex) >> 0));
-//   for (int theByteIndex = 0; theByteIndex < theByteCount; theByteIndex++) {
-//      Wire.write(theByteArray[theByteIndex]);
-//   }
-//   Wire.endTransmission();
-//   delay(5);
-//}
+void WireEepromWriteEx(int theDeviceAddress, unsigned int theMemoryAddress, unsigned char theByteCount, byte* theByteArray) {
+   Wire.beginTransmission(theDeviceAddress); 
+   for (int theByteIndex = 0; theByteIndex < theByteCount; theByteIndex++) {
+      Wire.write(theByteArray[theByteIndex]);
+      Wire.write((byte)((theMemoryAddress + theByteIndex) >> 8));
+      Wire.write((byte)((theMemoryAddress + theByteIndex) >> 0));
+   }
+   Wire.endTransmission();
+   delay(5);
+}
 
 void WireEepromWriteByte(int theDeviceAddress, unsigned int theMemoryAddress, byte theByte) {
   byte theByteArray[sizeof(byte)] = {(byte)(theByte >> 0)};
