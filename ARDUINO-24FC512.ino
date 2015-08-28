@@ -30,12 +30,13 @@ void loop(void) {
       Serial.write(FAIL);
       return;
     }else {
-      WireEepromWriteEx(theDeviceAddress,address,length,buffer);
+      byte *bpt = &buffer[4];
+      WireEepromWriteEx(theDeviceAddress,address,length,bpt);
       Serial.write(SUCCESS);
       return;
     }   
   }else
-  if(number==105 && buffer[0]== READ ){
+  if(number==105 && mode== READ ){
     unsigned int address = ((unsigned int)buffer[1])*256;
     address += (unsigned int)buffer[2];
     byte dataRead = WireEepromReadByte(theDeviceAddress, address);
@@ -75,10 +76,10 @@ void WireEepromWrite(int theDeviceAddress, unsigned int theMemoryAddress, int th
 }
 
 void WireEepromWriteEx(int theDeviceAddress, unsigned int theMemoryAddress, unsigned char theByteCount, byte* theByteArray) {
-   Wire.beginTransmission(theDeviceAddress); 
+   Wire.beginTransmission(theDeviceAddress);
+   Wire.write((byte)((theMemoryAddress) >> 8));
+   Wire.write((byte)((theMemoryAddress) >> 0));
    for (int theByteIndex = 0; theByteIndex < theByteCount; theByteIndex++) {
-      Wire.write((byte)((theMemoryAddress + theByteIndex) >> 8));
-      Wire.write((byte)((theMemoryAddress + theByteIndex) >> 0));
       Wire.write(theByteArray[theByteIndex]);
    }
    Wire.endTransmission();

@@ -834,9 +834,10 @@ serialPort.open (error) ->
 	return console.log 'failed to open: ' + error if error
 	console.log "Start!  #{rom.length} to be flash"
 	serialPort.on 'data', (data) ->
-		serialPort.close()
-		varify()
-		return
+		if startAddress is 0
+			serialPort.close()
+			varify()
+			return
 		# for i in data
 			# console.log Number i
 		if data[0] is DATA_SUCCESS 
@@ -906,24 +907,16 @@ prepareDataRead=(address)->
 	data[1] = address>>8
 	data[2] = address
 	data[3] = 100	
-	for i in [4...bufferLength]
-		if (address+i-4) > rom.length
-			console.log (address+i-4)+" set to : 0xff"
-			data[i] = 0xff
-		else 
-			data[i]=rom[address+i-4]
-	for i in [0...bufferLength-1]
-		check += data[i]
-	data[bufferLength-1] = check
 	data
 
 varify = ->
-	varify_address=1
+	varify_address=0
 	serialPort.open (error) ->
 		console.log error if error
 		console.log('Start varifying...');
 		serialPort.on 'data', (data) ->
-			if data[0] is rom[varify_address] or 1
+			# console.log data
+			if data[0] is rom[varify_address]
 				console.log "0x#{varify_address.toString(16)} : 0x#{data.toString('hex')} -> OK"
 				if ++varify_address < rom.length
 					prepareDataRead(varify_address)
@@ -932,7 +925,7 @@ varify = ->
 					process.exit()
 				serialPort.write prepareDataRead(varify_address)
 			else 
-				console.log "0x#{varify_address.toString(16)} : 0x#{data.toString('hex')} -> Error"
+				console.log "0x#{varify_address.toString(16)} : 0x#{data.toString('hex')} -> Error(shoule be : 0x#{rom[varify_address].toString(16)})"
 				process.exit()
 			# console.log(String(data).split(','))
 		serialPort.write prepareDataRead(varify_address)
