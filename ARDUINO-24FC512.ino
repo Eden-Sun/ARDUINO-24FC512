@@ -12,7 +12,7 @@ byte buffer[200];
 
 void setup(void) {
   Serial.begin(115200);
-  Wire.begin();
+  Wire.begin(); 
 }
 
 void loop(void) {
