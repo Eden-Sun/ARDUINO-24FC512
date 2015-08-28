@@ -829,10 +829,14 @@ eeprom =[0xed,0x0,0xe4,0x2f,0x0,0x0,0x20,0x0,0xc3,0x0,0x0,0xff,0xff,0xff,0xff,
 
 rom = eeprom
 startAddress = 0
+
 serialPort.open (error) ->
 	return console.log 'failed to open: ' + error if error
 	console.log "Start!  #{rom.length} to be flash"
 	serialPort.on 'data', (data) ->
+		serialPort.close()
+		varify()
+		return
 		# for i in data
 			# console.log Number i
 		if data[0] is DATA_SUCCESS 
@@ -919,14 +923,14 @@ varify = ->
 		console.log error if error
 		console.log('Start varifying...');
 		serialPort.on 'data', (data) ->
-			if data[0] is rom[varify_address] 
+			if data[0] is rom[varify_address] or 1
 				console.log "0x#{varify_address.toString(16)} : 0x#{data.toString('hex')} -> OK"
 				if ++varify_address < rom.length
 					prepareDataRead(varify_address)
 				else
 					console.log "varify finished!"
 					process.exit()
-				serialPort.write data
+				serialPort.write prepareDataRead(varify_address)
 			else 
 				console.log "0x#{varify_address.toString(16)} : 0x#{data.toString('hex')} -> Error"
 				process.exit()

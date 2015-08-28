@@ -35,7 +35,7 @@ void loop(void) {
       return;
     }   
   }else
-  if(number==4 && buffer[0]== READ ){
+  if(number==105 && buffer[0]== READ ){
     unsigned int address = ((unsigned int)buffer[1])*256;
     address += (unsigned int)buffer[2];
     byte dataRead = WireEepromReadByte(theDeviceAddress, address);
