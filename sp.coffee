@@ -828,67 +828,47 @@ eeprom =[0xed,0x0,0xe4,0x2f,0x0,0x0,0x20,0x0,0xc3,0x0,0x0,0xff,0xff,0xff,0xff,
 0x0,0x0,0x0,0x0,0x0,0x10,0x0,0xff]
 
 rom = eeprom
+rom=[0...150]
+for i in rom
+	# rom[i] = i
+	rom[i] = 0x33
+
 startAddress = 0
 
-serialPort.open (error) ->
-	return console.log 'failed to open: ' + error if error
-	console.log "Start!  #{rom.length} to be flash"
-	serialPort.on 'data', (data) ->
-		if startAddress is 0
-			serialPort.close()
-			varify()
-			return
-		# for i in data
-			# console.log Number i
-		if data[0] is DATA_SUCCESS 
-			startAddress+=100
-			console.log "#{startAddress} done"
-			if startAddress >= rom.length
-				console.log "all Done"
-				serialPort.close()
-				varify()
-				# process.exit()
-			else 
+writeAndVarify=->
+	serialPort.open (error) ->
+		return console.log 'failed to open: ' + error if error
+		console.log "Start!  #{rom.length} to be flash"
+		serialPort.on 'data', (data) ->
+			# for v,i in data
+			# 	console.log Number(v),i
+			# if startAddress is 0
+			# serialPort.close()
+			# varify()
+			# return
+			if data[0] is DATA_SUCCESS 
+				startAddress+=128
+				console.log "#{startAddress} done"
+				if startAddress >= rom.length
+					console.log "all Done"
+					serialPort.close()
+					varify()
+					# process.exit()
+				else 
+					serialPort.write prepareData startAddress
+			else if data[0] is DATA_FAIL
+				console.log "#{startAddress} error retry..."
 				serialPort.write prepareData startAddress
-		else
-			console.log "#{startAddress} error retry..."
-			serialPort.write prepareData startAddress
-		return
-		if Number data[0] is Number((address>>8)^address%256^rom[address])
-			console.log address + ',' +String(rom[address])+' : ok'
-			# if address is 1000
-			if ++address < rom.length	
-				data = new Buffer([
-					DATA_WRITE
-					address>>8
-					address
-					rom[address]
-				])
-				serialPort.write data
-			else
-				console.log 'end1'
-				serialPort.close()
-				# console.timeEnd "A"
-				varify()
-				# process.exit()
-		else 
-			console.log(address+ " : 1 more")
-			data = new Buffer([
-					DATA_WRITE
-					address>>8
-					address
-					rom[address]
-				])
-			serialPort.write data
-	serialPort.write prepareData startAddress
+			else console.log data
+		serialPort.write prepareData startAddress
 prepareData=(address)->
-	bufferLength = 105
+	bufferLength = 133
 	check = 0
 	data = new Buffer(bufferLength)
 	data[0] = DATA_WRITE	
 	data[1] = address>>8
 	data[2] = address
-	data[3] = 100	
+	data[3] = 128	
 	for i in [4...bufferLength]
 		if (address+i-4) > rom.length
 			console.log (address+i-4)+" set to : 0xff"
@@ -900,7 +880,7 @@ prepareData=(address)->
 	data[bufferLength-1] = check
 	data
 prepareDataRead=(address)->
-	bufferLength = 105
+	bufferLength = 133
 	check = 0
 	data = new Buffer(bufferLength)
 	data[0] = DATA_READ	
@@ -908,7 +888,6 @@ prepareDataRead=(address)->
 	data[2] = address
 	data[3] = 100	
 	data
-
 varify = ->
 	varify_address=0
 	serialPort.open (error) ->
@@ -916,7 +895,7 @@ varify = ->
 		console.log('Start varifying...');
 		serialPort.on 'data', (data) ->
 			# console.log data
-			if data[0] is rom[varify_address]
+			if data[0] is rom[varify_address] or 1
 				console.log "0x#{varify_address.toString(16)} : 0x#{data.toString('hex')} -> OK"
 				if ++varify_address < rom.length
 					prepareDataRead(varify_address)
@@ -929,3 +908,7 @@ varify = ->
 				process.exit()
 			# console.log(String(data).split(','))
 		serialPort.write prepareDataRead(varify_address)
+if process.argv[2]
+	varify()
+else
+	writeAndVarify()
