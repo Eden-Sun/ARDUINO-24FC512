@@ -828,11 +828,11 @@ eeprom =[0xed,0x0,0xe4,0x2f,0x0,0x0,0x20,0x0,0xc3,0x0,0x0,0xff,0xff,0xff,0xff,
 0x0,0x0,0x0,0x0,0x0,0x10,0x0,0xff]
 
 rom = eeprom
-# rom=[0...260]
+# rom=[0...256]
 # for i in rom
 # 	rom[i] = i
-# 	rom[i] -=256 if i>=256
-# 	# rom[i] = 0x11
+# 	# rom[i] -=256 if i>=256
+# 	rom[i] = 0x7
 
 startAddress = 0
 
@@ -840,6 +840,7 @@ writeAndVarify=->
 	serialPort.open (error) ->
 		return console.log 'failed to open: ' + error if error
 		console.log "Start!  #{rom.length} to be flash"
+		console.time "a"
 		serialPort.on 'data', (data) ->
 			if data[0] is DATA_SUCCESS 
 				startAddress+=128
@@ -847,6 +848,7 @@ writeAndVarify=->
 				if startAddress >= rom.length
 					console.log "all Done"
 					serialPort.close()
+					console.timeEnd "a"
 					varify()
 					# process.exit()
 				else 
@@ -861,9 +863,9 @@ prepareData=(address)->
 	check = 0
 	data = new Buffer(bufferLength)
 	data[0] = DATA_WRITE	
-	data[1] = address>>8
-	data[2] = address
-	data[3] = 128	
+	data[1] = 128	
+	data[2] = address>>8
+	data[3] = address
 	for i in [4...bufferLength]
 		if (address+i-4) > rom.length
 			console.log (address+i-4)+" set to : 0xff"
@@ -908,8 +910,10 @@ varify = ->
 					console.log "varify finished!"
 					process.exit()
 			else
-				console.log "receive data format error"
-			# console.log(String(data).split(','))
+				console.log data.length
+				console.log data
+				console.log "received data format error"
+				# serialPort.write prepareDataRead(varify_address)
 		serialPort.write prepareDataRead(varify_address)
 if process.argv[2]
 	varify()

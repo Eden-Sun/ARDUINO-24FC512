@@ -17,10 +17,8 @@ void setup(void) {
 void loop(void) {
   byte number = Serial.readBytes(bufferArray, 133);
   unsigned char mode = bufferArray[0];
+  int length = bufferArray[1];
   if(number == 133 && mode==WRITE){
-    
-    unsigned int address = (((unsigned int)bufferArray[1])<<8) + (unsigned int)bufferArray[2];
-    unsigned char length = bufferArray[3];
     byte check = 0;
     for(unsigned char i = 0;i<133-1;i++){
       check+=bufferArray[i];
@@ -29,58 +27,28 @@ void loop(void) {
       Serial.write(FAIL);
       return;
     }else {
-      unsigned char cut = 30;
-      for(int i=0 ; i*cut < length ; i++ ){
-        Wire.beginTransmission(theDeviceAddress);
-        Wire.write(bufferArray[1]);
-        Wire.write(bufferArray[2]+i*cut);
-        byte least = length - i*cut;
-        if(least < cut) Wire.write(bufferArray+4+i*cut,least);
-        else Wire.write(bufferArray+4+i*cut,cut);
-        Wire.endTransmission(1);
-        delay(4);
-      }
+      Wire.beginTransmission(theDeviceAddress);
+      Wire.write(bufferArray+2,length+2);
+      Wire.endTransmission();
       Serial.write(SUCCESS);
       return;
     }   
   }else
   if(number==133 && mode== READ ){
-    byte readbuf[128]={0};
+    byte readbuf[130]={0};
     Wire.beginTransmission(theDeviceAddress);
     Wire.write(bufferArray[1]);
     Wire.write(bufferArray[2]);
     Wire.endTransmission();
-    delay(4);
-    for(int i=0;i<4;i++){
-      Wire.requestFrom(theDeviceAddress, 32);
-      for(int j=0;j<32;j++){
-        readbuf[i*32+j]=Wire.read();
-      }
+    Wire.requestFrom(theDeviceAddress, 128);
+    for(int j=0;j<128;j++){
+      readbuf[j+2]=Wire.read();
     }
-    Serial.write(bufferArray[1]);
-    Serial.write(bufferArray[2]);    
-    Serial.write(readbuf,128);
+    readbuf[0]=bufferArray[1];
+    readbuf[1]=bufferArray[2];    
+    Serial.write(readbuf,130);
   }
 //  else Serial.write(TIMEUP);
-}
-
-
-void WireEepromRead(int theDeviceAddress, unsigned int theMemoryAddress, int theByteCount, byte* theByteArray) {
-  for (int theByteIndex = 0; theByteIndex < theByteCount; theByteIndex++) {
-    Wire.beginTransmission(theDeviceAddress);
-    Wire.write((byte)((theMemoryAddress + theByteIndex) >> 8));
-    Wire.write((byte)((theMemoryAddress + theByteIndex) >> 0));
-    Wire.endTransmission();
-    delay(5);
-    Wire.requestFrom(theDeviceAddress, sizeof(byte));
-    theByteArray[theByteIndex] = Wire.read();
-  }
-}
-
-byte WireEepromReadByte(int theDeviceAddress, unsigned int theMemoryAddress) {
-  byte theByteArray[sizeof(byte)];
-  WireEepromRead(theDeviceAddress, theMemoryAddress, sizeof(byte), theByteArray);
-  return (byte)(((theByteArray[0] << 0)));
 }
 
 
