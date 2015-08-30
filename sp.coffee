@@ -828,10 +828,11 @@ eeprom =[0xed,0x0,0xe4,0x2f,0x0,0x0,0x20,0x0,0xc3,0x0,0x0,0xff,0xff,0xff,0xff,
 0x0,0x0,0x0,0x0,0x0,0x10,0x0,0xff]
 
 rom = eeprom
-rom=[0...150]
-for i in rom
-	# rom[i] = i
-	rom[i] = 0x33
+# rom=[0...260]
+# for i in rom
+# 	rom[i] = i
+# 	rom[i] -=256 if i>=256
+# 	# rom[i] = 0x11
 
 startAddress = 0
 
@@ -840,12 +841,6 @@ writeAndVarify=->
 		return console.log 'failed to open: ' + error if error
 		console.log "Start!  #{rom.length} to be flash"
 		serialPort.on 'data', (data) ->
-			# for v,i in data
-			# 	console.log Number(v),i
-			# if startAddress is 0
-			# serialPort.close()
-			# varify()
-			# return
 			if data[0] is DATA_SUCCESS 
 				startAddress+=128
 				console.log "#{startAddress} done"
@@ -886,7 +881,6 @@ prepareDataRead=(address)->
 	data[0] = DATA_READ	
 	data[1] = address>>8
 	data[2] = address
-	data[3] = 100	
 	data
 varify = ->
 	varify_address=0
@@ -894,18 +888,27 @@ varify = ->
 		console.log error if error
 		console.log('Start varifying...');
 		serialPort.on 'data', (data) ->
-			# console.log data
-			if data[0] is rom[varify_address] or 1
-				console.log "0x#{varify_address.toString(16)} : 0x#{data.toString('hex')} -> OK"
-				if ++varify_address < rom.length
-					prepareDataRead(varify_address)
+			readAddress = data[0]*256 +data[1]
+			if data.length is 130 and varify_address is readAddress
+				chkData = data.slice 2
+				errSum = 0
+				for chk,i in chkData
+					ads = varify_address+i
+					continue if ads >= rom.length or chk is rom[ads]
+					console.log "0x#{ads.toString(16)} : 0x#{chk.toString(16)} -> Error(shoule be : 0x#{rom[ads].toString(16)})"
+					errSum++
+				if errSum 
+					console.log "varify failed!!"
+					process.exit()
+				console.log "0x#{varify_address.toString(16)}~0x#{(varify_address+127).toString(16)} OK"
+				varify_address+= 128
+				if varify_address < rom.length
+					serialPort.write prepareDataRead varify_address
 				else
 					console.log "varify finished!"
 					process.exit()
-				serialPort.write prepareDataRead(varify_address)
-			else 
-				console.log "0x#{varify_address.toString(16)} : 0x#{data.toString('hex')} -> Error(shoule be : 0x#{rom[varify_address].toString(16)})"
-				process.exit()
+			else
+				console.log "receive data format error"
 			# console.log(String(data).split(','))
 		serialPort.write prepareDataRead(varify_address)
 if process.argv[2]
